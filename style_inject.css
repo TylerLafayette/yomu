@@ -1,11 +1,12 @@
 .yomu-highlighted-word {
     color: inherit;
     text-decoration: none;
-    transition: 0.3s ease;
+    transition: 0.2s cubic-bezier(0.075, 0.82, 0.165, 1);
     box-shadow: inset 0px -4px 0px rgba(0, 190, 222, 0.5);
 }
 
 .yomu-highlighted-word:hover {
+    cursor: pointer;
     text-decoration: none;
     box-shadow: inset 0px -8px 0px rgba(0, 190, 222, 0.88);
 }
