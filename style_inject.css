@@ -1,12 +1,54 @@
 .yomu-highlighted-word {
+    position: relative;
     color: inherit;
     text-decoration: none;
     transition: 0.2s cubic-bezier(0.075, 0.82, 0.165, 1);
     box-shadow: inset 0px -4px 0px rgba(0, 190, 222, 0.5);
 }
 
+.yomu-highlighted-word.thinking {
+    opacity: 0.6;
+}
+
 .yomu-highlighted-word:hover {
     cursor: pointer;
     text-decoration: none;
     box-shadow: inset 0px -8px 0px rgba(0, 190, 222, 0.88);
+}
+
+@keyframes yomu-dictionary-in {
+    0% {
+        transform-origin: bottom center;
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform-origin: bottom center;
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+yomu-dictionary-box {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+        "Segoe UI Symbol";
+    background-color: #ffffff;
+    margin-bottom: 6px;
+    position: absolute;
+    z-index: 9999;
+    padding: 16px;
+    border-radius: 4px;
+    box-shadow: rgba(38, 62, 84, 0.36) 0px 4px 10px;
+    border-top: 4px solid rgba(0, 190, 222, 0.5);
+    animation: yomu-dictionary-in 0.4s cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+yomu-dictionary-box span {
+    padding: 4px;
+    display: block;
+}
+
+yomu-dictionary-box span.yomu-dictionary-title {
+    font-weight: bold;
 }
