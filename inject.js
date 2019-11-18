@@ -86,7 +86,10 @@ class Yomu {
 
         const bound = e.target.getBoundingClientRect()
 
-        element.style.bottom = window.innerHeight - bound.y + "px"
+        element.style.bottom =
+            window.innerHeight -
+            (bound.y - this.mount.getBoundingClientRect().y) +
+            "px"
         element.style.left = bound.x + "px"
 
         this.mount.append(element)
