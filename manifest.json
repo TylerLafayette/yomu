@@ -1,0 +1,14 @@
+{
+    "name": "yomu",
+    "version": "0.0.1",
+    "description": "Chrome extension that parses Japanese and shows dictionary results 📚",
+    "permissions": ["activeTab"],
+    "content_scripts": [
+        {
+            "matches": ["http://*/*", "https://*/*"],
+            "css": ["style_inject.css"],
+            "js": ["vendor/js/kuromoji.js", "inject.js"]
+        }
+    ],
+    "manifest_version": 2
+}
