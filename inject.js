@@ -25,6 +25,7 @@ class Yomu {
         "span",
         "p",
     ]
+    blockedTags = ["html", "body", "script", "object"]
     constructor() {
         this.tokenizer = null
         this.mount = document.createElement("yomu-mount")
@@ -136,47 +137,65 @@ class Yomu {
             .forEach(this.processTag)
     }
     // processTag processes a single tag.
-    processTag = ([tag, dangerous]) => {
-        document.querySelectorAll(tag).forEach(item => {
-            let content = item.innerHTML
-
-            // If the element is dangerous (eg: div) then make sure it has
-            // no children. (can lead to weird lag/errors)
-            if (dangerous && getInnerDepth(item) > 1) return
-
-            let tokenized = this.tokenizer.tokenize(content)
-
-            // Split the content into an array of every character to allow for injection later.
-            let split = content.split("")
-
-            // Filter out the bad stuff.
-            tokenized = tokenized.filter(
-                token =>
-                    !token.surface_form.match(
-                        /[0-9]|[a-z]|[A-Z]|[@#-•!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|[ ]|[「」『』、。：？；]/
-                    )
-            )
-
-            // For each token, add the yomu-highlighted-word element around the word.
-            tokenized.forEach(token => {
-                split[
-                    token.word_position - 1
-                ] = `<yomu-highlighted-word class="yomu-highlighted-word">${
-                    split[token.word_position - 1]
-                }`
-
-                split[token.word_position - 2 + token.surface_form.length] = `${
-                    split[token.word_position - 2 + token.surface_form.length]
-                }</yomu-highlighted-word>`
-            })
-
-            // Join the array again and replace the inner content of the tag with it.
-            item.innerHTML = split.join("")
-        })
+    processTag = async ([tag, dangerous]) => {
+        document
+            .querySelectorAll(tag)
+            .forEach(item => this.processElement(item, dangerous))
 
         // Attach new listeners to highlighted words.
         this.attachListeners()
     }
+    processElement = async (item, dangerous) => {
+        if (item.children.length > 0)
+            if (dangerous) return null
+            else
+                Array.from(item.children).forEach(item =>
+                    this.processElement(item, dangerous)
+                )
+
+        if (this.blockedTags.includes(item.tagName.toLowerCase())) return
+
+        let content = item.innerHTML
+
+        // If the element is dangerous (eg: div) then make sure it has
+        // no children. (can lead to weird lag/errors)
+        if (dangerous && getInnerDepth(item) > 1) return
+
+        let tokenized = this.tokenizer.tokenize(
+            content.replace(/[<](.){1,}(>)(<\/)(.){1,}(>)/g, match =>
+                "*".repeat(match.length)
+            )
+        )
+
+        // Split the content into an array of every character to allow for injection later.
+        let split = content.split("")
+
+        // Filter out the bad stuff.
+        tokenized = tokenized.filter(
+            token =>
+                !token.surface_form.match(
+                    /[0-9]|[a-z]|[A-Z]|[@#-•!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|[ ]|[「」『』、。：？；]/
+                )
+        )
+
+        // For each token, add the yomu-highlighted-word element around the word.
+        tokenized.forEach(token => {
+            split[
+                token.word_position - 1
+            ] = `<yomu-highlighted-word class="yomu-highlighted-word">${
+                split[token.word_position - 1]
+            }`
+
+            split[token.word_position - 2 + token.surface_form.length] = `${
+                split[token.word_position - 2 + token.surface_form.length]
+            }</yomu-highlighted-word>`
+        })
+
+        // Join the array again and replace the inner content of the tag with it.
+        if (split.join("") != item.innerHTML) item.innerHTML = split.join("")
+    }
 }
 
-const yomu = new Yomu().init()
+setTimeout(() => {
+    const yomu = new Yomu().init()
+}, 100)
