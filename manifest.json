@@ -2,6 +2,11 @@
     "name": "yomu",
     "version": "0.0.1",
     "description": "Chrome extension that parses Japanese and shows dictionary results 📚",
+    "icons": {
+        "16": "icon/logo-16.png",
+        "48": "icon/logo-48.png",
+        "128": "icon/logo-128.png"
+    },
     "permissions": ["activeTab"],
     "content_scripts": [
         {
