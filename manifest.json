@@ -8,6 +8,10 @@
         "128": "icon/logo-128.png"
     },
     "permissions": ["activeTab"],
+    "background": {
+        "scripts": ["vendor/js/kuromoji.js", "worker.js"],
+        "persistent": true
+    },
     "content_scripts": [
         {
             "matches": ["http://*/*", "https://*/*"],

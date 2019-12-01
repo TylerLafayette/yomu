@@ -1,13 +1,20 @@
+// 読む injector (content script)
+// made by Tyler Lafayette
+// (with the help of some awesome open-source projects)
+
+// Yomu will load the dictionary files as well as make requests for
+// dictionary entries from this API URL.
+const API_URL = "https://yomu-api.herokuapp.com"
+
 const _XHROpen = window.XMLHttpRequest.prototype.open
 
 // Quick and dirty fix for a weird issue with kuromoji.js where it treats
 // the URL like a path.
 window.XMLHttpRequest.prototype.open = function(a, b, c) {
-    if (b.includes("https:/kuromojin")) {
-        arguments[1] = arguments[1].replace(
-            "https:/kuromojin",
-            "https://kuromojin"
-        )
+    if (b.includes(API_URL.replace("//", "/"))) {
+        // If it detects that 'https:/' is used, it will replace it
+        // with 'https://'
+        arguments[1] = arguments[1].replace(API_URL.replace("//", "/"), API_URL)
     }
     return _XHROpen.apply(this, arguments)
 }
@@ -26,6 +33,7 @@ class Yomu {
         "p",
     ]
     blockedTags = ["html", "body", "script", "object"]
+    tokenizeQueue = []
     constructor() {
         this.tokenizer = null
         this.mount = document.createElement("yomu-mount")
@@ -34,7 +42,7 @@ class Yomu {
     init = async _ => {
         kuromoji
             .builder({
-                dicPath: "https://kuromojin.netlify.com/dict/",
+                dicPath: `${API_URL}/public/vendor/dict/`,
             })
             .build((err, tokenizer) => {
                 this.tokenizer = tokenizer
@@ -43,6 +51,15 @@ class Yomu {
             })
 
         document.body.prepend(this.mount)
+        this.sendMessage({ greeting: "je" })
+    }
+    // messagePipe receives and interprets messages from the yomu worker.
+    messagePipe = (request, sender, sendResponse) => {
+        alert(`Received ${request.farewell}`)
+    }
+    // sendMessage sends a message to the yomu worker.
+    sendMessage = message => {
+        chrome.runtime.sendMessage(message)
     }
     // attachListeners attaches listeners to the highlighted words in the DOM.
     attachListeners = _ => {
@@ -86,18 +103,15 @@ class Yomu {
         e.target.classList.add("thinking")
         e.target.classList.remove("error")
 
-        const request = await fetch(
-            `https://cors-anywhere.herokuapp.com/https://jisho.org/api/v1/search/words?keyword=${word}`,
-            {
-                method: "GET",
-                mode: "cors",
-                headers: {
-                    "Content-Type": "application/json",
-                    Origin: location.origin,
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-            }
-        )
+        const request = await fetch(`${API_URL}/dictionary?keyword=${word}`, {
+            method: "GET",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+                Origin: location.origin,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        })
 
         const json = await request.json()
 
@@ -161,14 +175,24 @@ class Yomu {
         // no children. (can lead to weird lag/errors)
         if (dangerous && getInnerDepth(item) > 1) return
 
+        // Generate a pseudo-random ID for the element using the element's
+        // height plus a random number.
+        const elementId =
+            item.clientHeight + Math.floor(Math.random() * 1000000000000)
+
+        this.sendMessage({
+            action: "TOKENIZE",
+            elementId,
+            content: content.replace(/[<](.){1,}(>)(<\/)(.){1,}(>)/g, match =>
+                "*".repeat(match.length)
+            ),
+        })
+
         let tokenized = this.tokenizer.tokenize(
             content.replace(/[<](.){1,}(>)(<\/)(.){1,}(>)/g, match =>
                 "*".repeat(match.length)
             )
         )
-
-        // Split the content into an array of every character to allow for injection later.
-        let split = content.split("")
 
         // Filter out the bad stuff.
         tokenized = tokenized.filter(
@@ -177,6 +201,9 @@ class Yomu {
                     /[0-9]|[a-z]|[A-Z]|[@#-•!$%^&*()_+|~=`{}\[\]:";'<>?,.\/]|[ ]|[「」『』、。：？；]/
                 )
         )
+
+        // Split the content into an array of every character to allow for injection later.
+        let split = content.split("")
 
         // For each token, add the yomu-highlighted-word element around the word.
         tokenized.forEach(token => {
@@ -196,6 +223,6 @@ class Yomu {
     }
 }
 
-setTimeout(() => {
-    const yomu = new Yomu().init()
-}, 100)
+const yomu = new Yomu()
+chrome.runtime.onMessage.addListener(yomu.messagePipe)
+yomu.init()
